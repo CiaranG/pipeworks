@@ -175,7 +175,6 @@ minetest.register_craft( {
 	        { "homedecor:plastic_sheeting", "homedecor:plastic_sheeting", "homedecor:plastic_sheeting" }
 	},
 })
-
 minetest.register_craft( {
 	type = "shapeless",
 	output = "pipeworks:mese_tube_000000",
@@ -187,6 +186,29 @@ minetest.register_craft( {
 		"default:mese_crystal_fragment"
 	},
 })
+
+
+if digiline then
+    minetest.register_craft( {
+            output = "pipeworks:digi_tube_1 2",
+            recipe = {
+                    { "homedecor:plastic_sheeting", "homedecor:plastic_sheeting", "homedecor:plastic_sheeting" },
+                    { "", "digilines:wire_std_00000000", "" },
+                    { "homedecor:plastic_sheeting", "homedecor:plastic_sheeting", "homedecor:plastic_sheeting" }
+            },
+    })
+    minetest.register_craft( {
+            type = "shapeless",
+            output = "pipeworks:digi_tube_000000",
+            recipe = {
+                "pipeworks:tube_1",
+                    "digilines_wire_std_00000000",
+                    "digilines_wire_std_00000000",
+                    "digilines_wire_std_00000000",
+                    "digilines_wire_std_00000000"
+            },
+    })
+end
 
 minetest.register_craft( {
 	output = "pipeworks:conductor_tube_off_1 6",

@@ -345,6 +345,142 @@ if pipeworks.enable_mese_tube then
 				}, true) -- Must use old tubes, since the textures are rotated with 6d ones
 end
 
+if digiline and pipeworks.enable_digi_tube then
+        pipeworks.update_digitube_formspec = function(meta)
+                local frm = "size[8,8]"..
+                "image[0,0;1,1;pipeworks_white.png]"..
+                "image[0,1;1,1;pipeworks_black.png]"..
+                "image[0,2;1,1;pipeworks_green.png]"..
+                "image[0,3;1,1;pipeworks_yellow.png]"..
+                "image[0,4;1,1;pipeworks_blue.png]"..
+                "image[0,5;1,1;pipeworks_red.png]"
+                local inv = meta:get_inventory()
+                for i = 1, 6 do
+                        local st = meta:get_int("l"..tostring(i).."s")
+                        if st == 0 then
+                                frm = frm.."label[1.5,"..tostring(i-1)..";Off]"
+                        else
+                                local xpos = 1
+                                for _, st in ipairs(inv:get_list("line"..i)) do
+                                    if not st:is_empty() then
+                                            frm = frm.."item_image["..xpos..","..tostring(i-1)..";1,1;"..st:get_name().."]"
+                                            xpos = xpos + 1
+                                            if xpos > 8 then
+                                                break
+                                            end
+                                    end
+                                end
+                                if xpos == 1 then
+                                    frm = frm.."label[1.5,"..tostring(i-1)..";On (any)]"
+                                end
+                        end
+                end
+                meta:set_string("formspec", frm)
+        end
+        local digi_noctr_textures = {"pipeworks_digi_tube_noctr_1.png", "pipeworks_digi_tube_noctr_2.png", "pipeworks_digi_tube_noctr_3.png",
+        "pipeworks_digi_tube_noctr_4.png", "pipeworks_digi_tube_noctr_5.png", "pipeworks_digi_tube_noctr_6.png"}
+        local digi_plain_textures = {"pipeworks_digi_tube_plain_1.png", "pipeworks_digi_tube_plain_2.png", "pipeworks_digi_tube_plain_3.png",
+        "pipeworks_digi_tube_plain_4.png", "pipeworks_digi_tube_plain_5.png", "pipeworks_digi_tube_plain_6.png"}
+        local digi_end_textures = {"pipeworks_digi_tube_end.png", "pipeworks_digi_tube_end.png", "pipeworks_digi_tube_end.png",
+        "pipeworks_digi_tube_end.png", "pipeworks_digi_tube_end.png", "pipeworks_digi_tube_end.png"}
+        local digi_short_texture = "pipeworks_digi_tube_short.png"
+        local digi_inv_texture = "pipeworks_digi_tube_inv.png"
+        pipeworks.register_tube("pipeworks:digi_tube", "Digi pneumatic tube segment", digi_plain_textures, digi_noctr_textures,
+        digi_end_textures, digi_short_texture, digi_inv_texture,
+        {tube = {can_go = function(pos, node, velocity, stack)
+                local tbl = {}
+                local meta = minetest.get_meta(pos)
+                local inv = meta:get_inventory()
+                local found = false
+                local name = stack:get_name()
+                for i, vect in ipairs(pipeworks.meseadjlist) do
+                        if meta:get_int("l"..tostring(i).."s") == 1 then
+                                for _, st in ipairs(inv:get_list("line"..tostring(i))) do
+                                        if st:get_name() == name then
+                                                found = true
+                                                table.insert(tbl, vect)
+                                        end
+                                end
+                        end
+                end
+                if found == false then
+                        for i, vect in ipairs(pipeworks.meseadjlist) do
+                                if meta:get_int("l"..tostring(i).."s") == 1 then
+                                        if inv:is_empty("line"..tostring(i)) then
+                                                table.insert(tbl, vect)
+                                        end
+                                end
+                        end
+                end
+                return tbl
+        end},
+        on_construct = function(pos)
+                local meta = minetest.get_meta(pos)
+                local inv = meta:get_inventory()
+                for i = 1, 6 do
+                        meta:set_int("l"..tostring(i).."s", 1)
+                        inv:set_size("line"..tostring(i), 6*1)
+                end
+                pipeworks.update_digitube_formspec(meta)
+                meta:set_string("infotext", "Digi pneumatic tube")
+        end,
+        on_receive_fields = function(pos, formname, fields, sender)
+                local meta = minetest.get_meta(pos)
+                local i
+                if fields.quit then return end
+                pipeworks.update_digitube_formspec(meta)
+        end,
+        digiline =
+        {
+                receptor = {},
+                effector = {
+                        action = function(pos, node, channel, msg)
+                                -- TODO hard-wired channel for now, need to figure
+                                --      out if/how to fit it in the formspec!
+                                if channel ~= "tube" then return end
+                                if type(msg) ~= "table" then return end
+                                local meta = minetest.get_meta(pos)
+                                local inv = meta:get_inventory()
+                                for k, v in pairs(msg) do
+                                        i = nil
+                                        if type(k) == "number" and k >= 1 and k <= 6 then
+                                                i = k
+                                        elseif type(k) == "string" then
+                                                if k == "white" then i = 1
+                                                elseif k == "black" then i = 2
+                                                elseif k == "green" then i = 3
+                                                elseif k == "yellow" then i = 4
+                                                elseif k == "blue" then i = 5
+                                                elseif k == "red" then i = 6 end
+                                        end
+                                        if i then
+                                                if type(v) == "string" then
+                                                        for ix = 1,inv:get_size("line"..i) do
+                                                                inv:set_stack("line"..i, ix, ItemStack(""))
+                                                        end
+                                                        if v == "off" then
+                                                                meta:set_int("l"..i.."s", 0)
+                                                        else
+                                                                meta:set_int("l"..i.."s", 1)
+                                                                if v ~= "on" then
+                                                                        for item in string.gmatch(v, "%S+") do
+                                                                                if not tonumber(item) then
+                                                                                    inv:add_item("line"..i, ItemStack(item))
+                                                                                end
+                                                                        end
+                                                                end
+                                                        end
+                                                end
+                                        end
+                                end
+                                pipeworks.update_digitube_formspec(meta)
+                        end
+                },
+        }
+}, true) -- Must use old tubes, since the textures are rotated with 6d ones
+end
+
+
 if pipeworks.enable_detector_tube then
 	local detector_plain_textures = {"pipeworks_detector_tube_plain.png", "pipeworks_detector_tube_plain.png", "pipeworks_detector_tube_plain.png",
 					 "pipeworks_detector_tube_plain.png", "pipeworks_detector_tube_plain.png", "pipeworks_detector_tube_plain.png"}
