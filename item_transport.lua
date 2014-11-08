@@ -168,6 +168,11 @@ for _, data in ipairs({
 		wise_desc = "Stackwise",
 		stackwise = true,
 	},
+        {
+                name = "auto_filter",
+                wise_desc = "Automatic Stackwise",
+                stackwise = true,
+        }
 }) do
 	minetest.register_node("pipeworks:"..data.name, {
 		description = data.wise_desc.." Filter-Injector",
@@ -480,3 +485,17 @@ if minetest.get_modpath("mesecons_mvps") then
 		end
 	end)
 end
+
+minetest.register_abm({nodenames = {"pipeworks:auto_filter"}, interval = 5, chance = 1, 
+			action = function(pos, node)
+                                -- TODO - duplicate of original data used to create this item, above
+                                data = {
+                                            name = "auto_filter",
+                                            wise_desc = "Automatic Stackwise",
+                                            stackwise = true,
+                                        }
+                                local node = minetest.get_node(pos)
+				punch_filter(data, pos, node)
+			end
+})
+
