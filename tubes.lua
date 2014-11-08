@@ -347,13 +347,15 @@ end
 
 if digiline and pipeworks.enable_digi_tube then
         pipeworks.update_digitube_formspec = function(meta)
-                local frm = "size[8,8]"..
+                local frm = "size[10,8]"..
                 "image[0,0;1,1;pipeworks_white.png]"..
                 "image[0,1;1,1;pipeworks_black.png]"..
                 "image[0,2;1,1;pipeworks_green.png]"..
                 "image[0,3;1,1;pipeworks_yellow.png]"..
                 "image[0,4;1,1;pipeworks_blue.png]"..
-                "image[0,5;1,1;pipeworks_red.png]"
+                "image[0,5;1,1;pipeworks_red.png]"..
+                "field[8.25,1;2,1;channel;Channel;${channel}]"..
+                "button_exit[8,2;2,1;save;Save]"
                 local inv = meta:get_inventory()
                 for i = 1, 6 do
                         local st = meta:get_int("l"..tostring(i).."s")
@@ -427,7 +429,9 @@ if digiline and pipeworks.enable_digi_tube then
         on_receive_fields = function(pos, formname, fields, sender)
                 local meta = minetest.get_meta(pos)
                 local i
-                if fields.quit then return end
+                if not fields.save then return end
+		local meta = minetest.get_meta(pos)
+                meta:set_string("channel", fields.channel)
                 pipeworks.update_digitube_formspec(meta)
         end,
         digiline =
@@ -437,9 +441,11 @@ if digiline and pipeworks.enable_digi_tube then
                         action = function(pos, node, channel, msg)
                                 -- TODO hard-wired channel for now, need to figure
                                 --      out if/how to fit it in the formspec!
-                                if channel ~= "tube" then return end
-                                if type(msg) ~= "table" then return end
                                 local meta = minetest.get_meta(pos)
+                                local pchan = meta:get_string("channel")
+                                if pchan == "" then pchan = "tube" end
+                                if channel ~= pchan then return end
+                                if type(msg) ~= "table" then return end
                                 local inv = meta:get_inventory()
                                 for k, v in pairs(msg) do
                                         i = nil

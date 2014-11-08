@@ -107,18 +107,29 @@ minetest.register_node("pipeworks:autocrafter", {
 		connect_sides = {left = 1, right = 1, front = 1, back = 1, top = 1, bottom = 1}}, 
 	on_construct = function(pos)
 		local meta = minetest.get_meta(pos)
-		meta:set_string("formspec",
-				"size[8,11]"..
-				"list[current_name;recipe;0,0;3,3;]"..
-				"list[current_name;src;0,3.5;8,3;]"..
-				"list[current_name;dst;4,0;4,3;]"..
-				"list[current_player;main;0,7;8,4;]")
+                local formspec = "size[10,11]"..
+				 "list[current_name;recipe;0,0;3,3;]"..
+				 "list[current_name;src;0,3.5;8,3;]"..
+				 "list[current_name;dst;4,0;4,3;]"..
+				 "list[current_player;main;0,7;8,4;]"
+                if digiline then
+                    formspec = formspec .. "field[8.25,1;2,1;channel;Channel;${channel}]"
+                    formspec = formspec .. "button_exit[8,2;2,1;save;Save]"
+                end
+                meta:set_string("channel", "")
+		meta:set_string("formspec", formspec)
 		meta:set_string("infotext", "Autocrafter")
 		meta:set_string("virtual_items", "1")
 		local inv = meta:get_inventory()
 		inv:set_size("src", 3*8)
 		inv:set_size("recipe", 3*3)
 		inv:set_size("dst", 4*3)
+	end,
+	on_receive_fields = function(pos, formname, fields, sender)
+                if not fields.save then return end
+                if minetest.is_protected(pos, sender:get_player_name()) then return end
+		local meta = minetest.get_meta(pos)
+                meta:set_string("channel", fields.channel)
 	end,
 	on_punch = update_autocrafter,
 	can_dig = function(pos, player)
@@ -173,6 +184,35 @@ minetest.register_node("pipeworks:autocrafter", {
 			return stack:get_count()
 		end
 	end,
+        digiline =
+        {
+                receptor = {},
+                effector = {
+                        action = function(pos, node, channel, msg)
+                                local meta = minetest.get_meta(pos)
+                                if channel ~= meta:get_string("channel") then return end
+                                if type(msg) ~= "table" then return end
+                                local inv = meta:get_inventory()
+                                for ix = 1,inv:get_size("recipe") do
+                                        inv:set_stack("recipe", ix, ItemStack(""))
+                                end
+                                local x = 1
+                                local y = 1
+                                for _, row in pairs(msg) do
+                                    if y > 3 then return end
+                                    if type(row) ~= "table" then return end
+                                    for _, col in pairs(row) do
+                                        if x > 3 then return end
+                                        if type(col) ~= "string" then return end
+                                        inv:set_stack("recipe", x + (y - 1) * 3, ItemStack(col))
+                                        x = x + 1
+                                    end
+                                    y = y + 1
+                                    x = 1
+                                end
+                        end
+                },
+        }
 })
 
 minetest.register_abm({nodenames = {"pipeworks:autocrafter"}, interval = 1, chance = 1, 
