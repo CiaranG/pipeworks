@@ -414,6 +414,13 @@ if digiline and pipeworks.enable_digi_tube then
                                 end
                         end
                 end
+
+                -- Send digiline signal of what has passed through
+                local channel = meta:get_string("channel")
+                if not channel then channel = "tube" end
+                msg = name .. " " .. stack:get_count()
+                digiline:receptor_send(pos, digiline.rules.default, channel, msg)
+
                 return tbl
         end},
         on_construct = function(pos)
